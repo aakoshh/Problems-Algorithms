@@ -116,6 +116,23 @@ module MultiLeafTree =
 
 
 
+module Misc = 
+
+    /// create all possible combinations of n pairs parentheses
+    let rec parenthesize n = seq {
+        if n = 0 then
+            yield ""
+        else
+            for i in 0 .. n-1 do
+                let j = n-1 - i
+                for p1 in parenthesize i do
+                    for p2 in parenthesize j do
+                        yield sprintf "(%s)%s" p1 p2
+    }  
+    
+
+
+
 module Tests = 
 
     open NUnit.Framework
@@ -161,3 +178,14 @@ module Tests =
                                      Branch [Leaf "d"; Leaf "e"]]; 
                              Leaf "f"]
             Assert.AreEqual(e,t)
+
+
+    module TestMisc = 
+        
+        open Misc
+
+        [<Test>]
+        let TestParentesize() = 
+            let p = parenthesize 3 |> Set.ofSeq
+            let e = ["()()()"; "()(())"; "(())()"; "(()())"; "((()))"] |> Set.ofList
+            Assert.AreEqual(e,p)
