@@ -51,6 +51,7 @@
     <Compile Include="LCS.fs" />
     <Compile Include="Heap.fs" />
     <Compile Include="LeafTree.fs" />
+    <Compile Include="Bits.fs" />
     <None Include="Script.fsx" />
   </ItemGroup>
   <PropertyGroup>
