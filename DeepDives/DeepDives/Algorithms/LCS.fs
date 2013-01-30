@@ -1,5 +1,5 @@
 ﻿namespace Algorithms
-open Common
+open Algorithms.Common
 
 /// Longest Common Subsequence / Substring
 module LCS = 
@@ -49,6 +49,22 @@ module LCS =
         l, s |> List.rev
 
 
+    /// get the longest increasing subsequence from a list of numbers
+    let longestInreasingSubsequence (lst: int list) = 
+        let nums = lst |> Array.ofList
+        // a function that returns the longest sequence ending at i
+        let rec longest = memoize <| fun i ->
+            let blank = [ 0,[] ] // if we have nothing to extend
+            let extensible = [0 .. i-1] // any sequence from before we can append to
+                            |> Seq.map (fun j -> longest j)
+                            |> Seq.filter (fun (_, h::_) -> h < nums.[i])
+            let l,s = Seq.append blank extensible |> Seq.maxBy fst
+            l+1, nums.[i]::s
+        longest (nums.Length-1) |> snd |> List.rev
+            
+
+
+
     module Tests = 
         
         open NUnit.Framework
@@ -68,4 +84,13 @@ module LCS =
             let l, s = longestCommonSubstring a b
             Assert.AreEqual(3, l)
             Assert.IsTrue( ['B';'A';'B'] = s )
+
+
+        [<Test>]
+        let TestLIS() = 
+            Assert.AreEqual( [1;    2;   3;  4;    5],
+                             [1;1;0;2;-1;3;2;4;3;4;5] |> longestInreasingSubsequence )
+            Assert.AreEqual( 6, // not unique
+                             [0; 8; 4; 12; 2; 10; 6; 14; 1; 9; 5; 13; 3; 11; 7; 15]
+                                |> longestInreasingSubsequence |> List.length)
     
