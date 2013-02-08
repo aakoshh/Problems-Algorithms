@@ -53,6 +53,7 @@
     <Compile Include="LeafTree.fs" />
     <Compile Include="Bits.fs" />
     <None Include="Script.fsx" />
+    <Compile Include="Sorting.fs" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
