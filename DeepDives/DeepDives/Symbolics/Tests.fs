@@ -5,6 +5,7 @@ open Symbolics
 open Symbolics.Parsing
 open Symbolics.Parsing.Tokenizing
 open Symbolics.Printing
+open Symbolics.Transformations
 
 
 
@@ -89,7 +90,7 @@ type ParsingTests() =
 [<TestFixture>]
 type PrintingTests() =     
 
-    let expressions() = [
+    let expressions () = [
         "2*x^2 + 3*(x+y) + 4";
         "a + b - c - d";
         "a + b - (c + d)";
@@ -109,3 +110,22 @@ type PrintingTests() =
         let ast1 = str |> parse
         Assert.AreEqual(ast0, ast1)
 
+
+
+[<TestFixture>]
+type TransformationTests() =  
+
+    let simplifications () = 
+        [   
+            "1 + 2 + 3 + 4", "10";
+            "2 * (0 * a + 1)", "2";
+            "x---x", "0";
+            "(a + b + 0*c) * (a + b) * (3 - 2)", "(a + b)^2"
+            "x ^ (3-2+a-a)", "x"
+        ] 
+        |> List.map (fun (e,s) -> new TestCaseData(e,s))
+
+    [<TestCaseSource("simplifications")>]
+    member x.SimplifictionsWorkAsExpected(expr, simple) =         
+        let str = expr |> parse |> simplify |> toString
+        Assert.AreEqual(simple, str)

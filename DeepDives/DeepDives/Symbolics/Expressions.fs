@@ -137,3 +137,47 @@ module Printing =
     type Expression with
         member x.ToString() = 
             x |> toString
+
+
+module Transformations = 
+
+    let simplify expr =
+
+        // simplify once
+        let rec simplify' = function
+            | Mul(Const 0, _)             
+            | Mul(_, Const 0) -> Const 0
+            | Add(Const 0, e)
+            | Add(e, Const 0) 
+            | Mul(Const 1, e)
+            | Mul(e, Const 1)
+            | Exp(e, Const 1) -> e
+            | Exp(_, Const 0) -> Const 1
+
+            | Add(Const a, Const b) -> Const (a+b)
+            | Sub(Const a, Const b) -> Const (a-b)
+            | Mul(Const a, Const b) -> Const (a*b)
+
+            | Add(a, b) when a = b -> Mul(Const 2, a)
+            | Sub(a, b) when a = b -> Const 0        
+            | Mul(a, b) when a = b -> Exp(a, Const 2)
+            | Div(a, b) when a = b -> Const 1
+
+            | Neg(Neg e) -> e
+
+            // recursive rules
+            | Add(a,b) -> Add(simplify' a, simplify' b)
+            | Sub(a,b) -> Sub(simplify' a, simplify' b)
+            | Mul(a,b) -> Mul(simplify' a, simplify' b)
+            | Div(a,b) -> Div(simplify' a, simplify' b)
+            | Exp(a,b) -> Exp(simplify' a, simplify' b)
+            | Neg(e) -> Neg(simplify' e)
+
+            | e -> e
+
+        // simplify as many times as it makes any changes
+        let rec loop expr =  
+            let expr' = simplify' expr
+            if expr' = expr then expr else loop expr'
+
+        loop expr
