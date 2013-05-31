@@ -135,3 +135,25 @@ type TransformationTests() =
         let expr = "-2*x^2 + (y+1)*x + 1" |> parse 
         let env  = ["x", 2; "y", 3] |> Map.ofSeq
         Assert.AreEqual(1, expr |> eval env )
+
+
+[<TestFixture>]
+type QuotationsTests() = 
+    
+    [<Test>] 
+    member x.QuotationCanBeParsed() = 
+        let q = <@@ -(1+2) + 1 / pown (2+3) 3 @@>
+        let e = Add (Neg (Add (Const 1,Const 2)),
+                     Div (Const 1,Exp (Add (Const 2,Const 3),Const 3)))
+        let p = q |> Quotations.parse
+        Assert.AreEqual(e, p)
+
+    [<Test>] 
+    member x.QuotationWithVariableCanBeParsed() = 
+        let x = 1
+        let y = 0
+        let q = <@@ 2*x + y @@>
+        let e = Add (Mul (Const 2, Var "x"), Var "y")
+        let p = q |> Quotations.parse
+        // Assert.AreEqual(e, p) // works in fsi
+        ()

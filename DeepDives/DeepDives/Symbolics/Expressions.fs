@@ -114,6 +114,34 @@ module Parsing =
             | [] -> e
             | _ -> failwithf "Could not finish parsing input: %A" leftover
 
+
+module Quotations = 
+
+    open Microsoft.FSharp.Quotations.Patterns
+    open Microsoft.FSharp.Quotations.DerivedPatterns
+    
+    let rec parse quotation = 
+        
+        let (|Operation|_|) op expr = 
+            match expr with
+            | SpecificCall op (_, _, exprList) ->
+                let a = parse exprList.Head
+                let b = parse exprList.Tail.Head
+                Some(a,b)
+            | _ -> None
+
+        match quotation with
+        | Int32(x) -> Const x
+        | Operation <@@(+)@@> (a,b) -> Add (a,b)
+        | Operation <@@(-)@@> (a,b) -> Sub (a,b)
+        | Operation <@@(*)@@> (a,b) -> Mul (a,b)
+        | Operation <@@(/)@@> (a,b) -> Div (a,b)
+        | Operation <@@ pown @@> (a,b) -> Exp (a,b)
+        | Call(None, op_UnaryNegation, [x]) -> Neg (parse x)
+        | PropertyGet(_, propOrValInfo, _) -> Var(propOrValInfo.Name)
+        | Var(x) -> Var(x.Name)
+        | expr -> failwithf "Cannot parse quotation: %A" expr
+
     
 module Printing = 
 
