@@ -1,9 +1,13 @@
-﻿// Learn more about F# at http://fsharp.net. See the 'F# Tutorial' project
-// for more guidance on F# programming.
-
+﻿
 #load "Expressions.fs"
-open Symbolics.Parsing.Tokenizing
 
-// Define your library scripting code here
+Symbolics.Parsing.parse "1 * 2 * 3"
+Symbolics.Parsing.parse "1 * (2 * 3)"
+Symbolics.Parsing.parse "(1 * 2) * 3"
+Symbolics.Parsing.parse "1 / 2 / 3"
+Symbolics.Parsing.parse "3 * x^2 * y"
+Symbolics.Parsing.parse "3 * x^(2+a)"
+Symbolics.Parsing.parse "-x^2"
+Symbolics.Parsing.parse "-x^-2^y"
 
-tokenize "1 + x + (x'*3)^2 " |> List.ofSeq
+Symbolics.Parsing.parse "-a^2 + 2*b^-((c+1)/2) - c - 2"
