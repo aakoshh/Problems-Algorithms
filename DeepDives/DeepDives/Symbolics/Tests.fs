@@ -1,9 +1,11 @@
 ﻿namespace Symbolics.Tests
 
 open NUnit.Framework
-open Symbolics.Parsing.Tokenizing
-open Symbolics.Parsing
 open Symbolics
+open Symbolics.Parsing
+open Symbolics.Parsing.Tokenizing
+open Symbolics.Printing
+
 
 
 [<TestFixture>]
@@ -83,4 +85,27 @@ type ParsingTests() =
                             Sub(Sub(s1, s2), Const 2))))
         Assert.AreEqual(ast, parse exp)
                             
+
+[<TestFixture>]
+type PrintingTests() =     
+
+    let expressions() = [
+        "2*x^2 + 3*(x+y) + 4";
+        "a + b - c - d";
+        "a + b - (c + d)";
+        "1 / (x + 1)^2";
+        "a * b + c * (d - e)";
+        ]
+
+    [<TestCaseSource("expressions")>]
+    member x.PrintingResultsInIdenticalString(expr: string) =         
+        let str = expr |> parse |> toString
+        Assert.AreEqual(expr.Replace(" ",""), str.Replace(" ",""))
+
+    [<TestCaseSource("expressions")>]
+    member x.PrintedStringCanBeParsedBack(expr: string) =         
+        let ast0 = expr |> parse 
+        let str = ast0 |> toString
+        let ast1 = str |> parse
+        Assert.AreEqual(ast0, ast1)
 

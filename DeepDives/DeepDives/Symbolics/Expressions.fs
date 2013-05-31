@@ -113,3 +113,27 @@ module Parsing =
             match leftover with
             | [] -> e
             | _ -> failwithf "Could not finish parsing input: %A" leftover
+
+    
+module Printing = 
+
+    let toString expr = 
+        let paren above pr s = 
+            if pr > above then sprintf "(%s)" s else s
+
+        let rec loop pr e = 
+            match e with
+            | Add(a,b) -> sprintf "%s + %s" (loop 0 a) (loop 0 b) |> paren 0 pr
+            | Sub(a,b) -> sprintf "%s - %s" (loop 0 a) (loop 1 b) |> paren 0 pr // Sub is left assoc so a - b - c - d will recurse into loop 0
+            | Mul(a,b) -> sprintf "%s * %s" (loop 1 a) (loop 1 b) |> paren 1 pr
+            | Div(a,b) -> sprintf "%s / %s" (loop 1 a) (loop 1 b) |> paren 1 pr
+            | Exp(a,b) -> sprintf "%s^%s" (loop 2 a) (loop 2 b) // (a*b)^(c*d)
+            | Neg e -> sprintf "-%s" (loop 1 e)
+            | Const i -> sprintf "%d" i
+            | Var x -> x 
+        loop 0 expr       
+
+    
+    type Expression with
+        member x.ToString() = 
+            x |> toString
