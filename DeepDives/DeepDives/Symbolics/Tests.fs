@@ -129,3 +129,9 @@ type TransformationTests() =
     member x.SimplifictionsWorkAsExpected(expr, simple) =         
         let str = expr |> parse |> simplify |> toString
         Assert.AreEqual(simple, str)
+
+    [<Test>]
+    member x.EvalWorks() =         
+        let expr = "-2*x^2 + (y+1)*x + 1" |> parse 
+        let env  = ["x", 2; "y", 3] |> Map.ofSeq
+        Assert.AreEqual(1, expr |> eval env )

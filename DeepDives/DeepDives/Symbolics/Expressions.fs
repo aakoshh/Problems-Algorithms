@@ -181,3 +181,16 @@ module Transformations =
             if expr' = expr then expr else loop expr'
 
         loop expr
+
+
+    let eval env expr = 
+        let rec eval' = function
+            | Add(a,b) -> eval' a + eval' b
+            | Sub(a,b) -> eval' a - eval' b
+            | Mul(a,b) -> eval' a * eval' b
+            | Div(a,b) -> eval' a / eval' b
+            | Exp(a,b) -> pown (eval' a) (eval' b)
+            | Neg(e) -> -(eval' e)
+            | Const(c) -> c
+            | Var(x) -> env |> Map.tryFind x |> Option.get
+        eval' expr
