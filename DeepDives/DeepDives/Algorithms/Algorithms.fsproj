@@ -22,7 +22,7 @@
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Debug\Algorithms.XML</DocumentationFile>
     <StartAction>Program</StartAction>
-    <StartProgram>C:\Program Files (x86)\NUnit 2.6.1\bin\nunit-x86.exe</StartProgram>
+    <StartProgram>C:\Program Files (x86)\NUnit 2.6.2\bin\nunit.exe</StartProgram>
     <StartArguments>Algorithms.dll</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -51,6 +51,7 @@
     <Compile Include="LCS.fs" />
     <Compile Include="Heap.fs" />
     <Compile Include="LeafTree.fs" />
+    <Compile Include="Treemap.fs" />
     <Compile Include="Bits.fs" />
     <None Include="Script.fsx" />
     <Compile Include="Sorting.fs" />
