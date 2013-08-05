@@ -55,15 +55,23 @@ module Squarified =
 
     /// Given a list of laid out items try to stack another one at the top, 
     /// recalculating the layout of each item to form a new common rectangle.
-    let stack division size (item: 'a Item) (stck: 'a Stack) = 
+    let stack (rect: Rectangle) (item: 'a Item) (stck: 'a Stack) = 
+        // if we want to divide the rectangle horizontally, 
+        // we are going to try to stack the items on the left side vertially
+        let direction = rect.Division.Other
+        let size = match direction with 
+            | Vertical -> rect.Height
+            | Horizontal -> rect.Width
+
         match stck with
         | [] -> 
             // create the first item to fill the space
             let rect = 
-                match division with
+                match direction with
                 | Vertical   -> { Height = size; Width = (area item) / size }
                 | Horizontal -> { Width = size; Height = (area item) / size }
             [rect, item]
+
         | items -> 
             // calculate the total area of the items and create new rectangles
             let total = (area item) + (stck |> List.sumBy (fun patch -> (fst patch).Area))
@@ -72,7 +80,7 @@ module Squarified =
             let items = item :: (items |> List.map snd)
             let stck = items |> List.map (fun item ->
                 let rect = 
-                    match division with
+                    match direction with
                     | Vertical   -> { Width = other; Height = (area item) / other }
                     | Horizontal -> { Height = other; Width = (area item) / other }
                 rect, item)
@@ -80,8 +88,8 @@ module Squarified =
 
 
     /// Stack items as long as the aspect ration gets better (closer to 1).
-    let stackItems division size (items: 'a Item list) = 
-        let push = stack division size
+    let stackItems rect (items: 'a Item list) = 
+        let push = stack rect
         let rec loop items (stck: 'a Stack) = 
             match items with 
             | [] -> stck, []
@@ -108,15 +116,9 @@ module Squarified =
             match items with
             | [] -> 
                 Empty rect |> cont
-            | items ->          
-                // if we want to divide the rect horizontally, 
-                // we are going to try to stack the items on the left side vertially
-                let div = rect.Division.Other
-                let size = match div with 
-                    | Vertical -> rect.Height
-                    | Horizontal -> rect.Width
+            | items ->                          
                 // stack items as long as the aspect ratio gets better
-                let stck, rest = stackItems div size items
+                let stck, rest = items |> stackItems rect
                 // combine the stack into one leaf node and fill the other empty part with the rest
                 let total = stck |> List.sumBy (fun patch -> (fst patch).Area)
                 let srect = rect.Divide total
@@ -141,8 +143,8 @@ module Tests =
 
     [<Test>]
     let StackToEmptyGivesRightSize() = 
-        
-        let stck = stack Vertical 4.0 (6.0, 6) [] 
+        let rect = {Width = 6.0; Height = 4.0}
+        let stck = stack rect (6.0, 6) [] 
         let exp  = [{ Height = 4.0; Width = 6.0/4.0}, (6.0, 6) ]
 
         Assert.AreEqual(exp, stck)
@@ -150,8 +152,8 @@ module Tests =
 
     [<Test>]
     let StackToExistingGivesRightSize() = 
-        
-        let push = stack Vertical 4.0
+        let rect = {Width = 6.0; Height = 4.0}
+        let push = stack rect
         let stck = [] |> push (6.0, 6) |> push (6.0, 6) |> push (4.0, 4) 
         let exp  = [
             { Height = 1.0; Width = 4.0}, (4.0, 4);
@@ -163,7 +165,8 @@ module Tests =
 
     [<Test>]
     let StackStopsWhenAspectGetsWorse() = 
-        let stck, rest = stackItems Vertical 4.0 [(6.0, "6.a");(6.0, "6.b");(4.0, "4")]
+        let rect = {Width = 6.0; Height = 4.0}
+        let stck, rest = [(6.0, "6.a");(6.0, "6.b");(4.0, "4")] |> stackItems rect
         let exp  = [
             { Height = 2.0; Width = 3.0}, (6.0, "6.b");
             { Height = 2.0; Width = 3.0}, (6.0, "6.a"); ]
