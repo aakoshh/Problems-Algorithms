@@ -94,3 +94,48 @@ module LCS =
                              [0; 8; 4; 12; 2; 10; 6; 14; 1; 9; 5; 13; 3; 11; 7; 15]
                                 |> longestInreasingSubsequence |> List.length)
     
+
+
+module SubArrays = 
+
+    /// Sum of the sub-array with the largest sum with O(n^3) complexity.
+    let largestSubSum (arr : int[]) = 
+        let n = arr |> Array.length
+        let sums = seq {
+            for i in 0 .. n - 1 do
+                for j in i .. n - 1 do
+                    yield arr.[i .. j]
+        }
+        sums |> Seq.map Array.sum |> Seq.max
+
+
+    /// Sum of the sub-array with the largest sum with O(n) complexity.
+    let largestSubSumLin arr = 
+        let n = arr |> Array.length
+        let rec loop i rmax rsum = 
+            if i = n then
+                rmax
+            else
+                let rsum = max 0 (rsum + arr.[i]) 
+                let rmax = max rsum rmax
+                loop (i+1) rmax rsum
+        loop 0 0 0
+
+
+
+    module Tests = 
+
+        open NUnit.Framework
+
+        let cases = [[|1;2;3|], 6;
+                     [|1;-1;2;-1|], 2;
+                     [|3;-1;-4;10|], 10;]
+                     |> List.map (fun (arr, lss) -> new TestCaseData(arr, lss))
+
+        [<TestCaseSource("cases")>]
+        let TestNaive(arr, lss) = 
+            Assert.AreEqual(lss, largestSubSum arr)
+
+        [<TestCaseSource("cases")>]
+        let TestLinear(arr, lss) = 
+            Assert.AreEqual(lss, largestSubSumLin arr)
