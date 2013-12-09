@@ -174,3 +174,14 @@ module Coins =
             let elapsed = timer.ElapsedMilliseconds
             Assume.That(elapsed < 1000L, sprintf "Should have finished faster than %d ms." elapsed) // not in debug mode
             printfn "Calculation took %d ms." elapsed 
+
+
+        [<Test>]
+        let GreedyPicksInferiorSolution() = 
+            let solution = changeAndDisposeMostGreedy [10; 20; 50] [1; 3; 1] 60
+            Assert.AreEqual([10; 50], solution |> Option.get |> snd)
+
+        [<Test>]
+        let BuilderPicksTheRightSolution() = 
+            let solution = changeAndDisposeMostBuild [10; 20; 50] [1; 3; 1] 60
+            Assert.AreEqual([20;20;20], solution |> Option.get |> snd)
