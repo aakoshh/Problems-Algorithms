@@ -50,6 +50,35 @@ module Coins =
         change (sum, 0)
 
 
+    /// Change coins by getting rid of the smalles values first.
+    /// Can result in inferior solutions like in case of [10; 20; 50] [1; 3; 1] 60
+    let changeAndDisposeMostGreedy values pieces sum = 
+        // create an array so we can use dynamic programming referring to indexes
+        let coins = expandCoins values pieces 
+                    |> Array.ofList 
+                    |> Array.sort
+        let n = coins |> Array.length
+
+        /// Assuming that if we can use a small coin and still finish, 
+        /// then it will never be worse off than not using it.
+        let rec change = memoize <| fun (s, i) ->
+            if i = n && s <> 0 then
+                None
+            else if s = 0 then
+                Some (0, [])
+            else if coins.[i] <= s then
+                // try to go with the smallest coin
+                match change (s-coins.[i], i+1) with
+                | Some (w, cw) -> 
+                    Some(w+1, coins.[i] :: cw) 
+                | None -> 
+                    change (s, i+1)
+            else
+                change (s, i+1)
+
+        change (sum, 0)
+
+
     module Tests = 
         open NUnit.Framework
         open System.Diagnostics
@@ -72,7 +101,7 @@ module Coins =
 
 
         [<Test>]
-        let AlgorithmFinishesWithing10Seconds() = 
+        let AlgorithmFinishesWithin10Seconds() = 
             let values = [1; 2; 5; 10; 20; 50; 100; 200]
             let pieces = [160; 138; 172; 146; 38; 25; 180; 107]
             let value  = 7606
