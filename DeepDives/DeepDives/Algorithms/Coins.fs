@@ -280,3 +280,33 @@ module Coins =
             let value  = 37
             let solutions = correctMethods |> List.map (fun f -> f values pieces value)
             Assert.That(solutions |> List.forall Option.isNone)
+
+        
+        [<Test>]
+        let KnownBaseProblemCanBeSolved() = 
+            let values = [1; 2; 5; 10; 20; 50; 100; 200]
+            let pieces = [25; 106; 85; 70; 2; 104; 60; 8]
+            let value  = 5685
+            let solution = changeAndDisposeMostBuild values pieces value
+            Assert.AreEqual(371, solution |> Option.get |> fst)
+
+        
+        [<Test>]
+        let EdgeCaseProblemCanBeSolved() = 
+            let values = [4; 10; 19; 36; 45; 49; 50; 56; 64; 66; 85; 96; 103; 115; 122; 128; 137; 139; 143; 187]
+            let pieces = [86; 25; 93; 96; 50; 79; 79; 30; 37; 92; 73; 75; 105; 30; 50; 105; 77; 14; 53; 72]
+            let value  = 19700
+            let solution = changeAndDisposeMostBuild values pieces value
+            Assert.AreNotEqual(569, solution |> Option.get |> fst)
+            Assert.AreNotEqual(571, solution |> Option.get |> fst)
+
+        
+        [<Test>]
+        let SolutionExpandsToMoreLargerCoinsAddedToSmaller() = 
+            let values = [4;36;56;64;66]
+            let pieces = [2;1;2;1;2]
+            let value  = 176
+            let solution = changeAndDisposeMostBuild values pieces value 
+            Assert.AreNotEqual(Some (3, [56; 56; 64]), solution) // stopping as soon as encountered
+            Assert.AreEqual(Some (5, [4;4;36;66;66]), solution) 
+            
