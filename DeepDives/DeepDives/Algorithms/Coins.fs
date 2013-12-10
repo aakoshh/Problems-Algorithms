@@ -117,9 +117,69 @@ module Coins =
         | Some(coins) -> Some(coins |> List.length, coins)
         | None -> None
 
-            
+    
+    
+    module Submission = 
+        open System
+        open System.Collections.Generic
+        open System.Net
+        open System.Web
+        open System.Collections.Specialized
+
+        /// Transform a dictionary into a query string.
+        let encode values = 
+            values 
+                |> Map.fold 
+                    (fun (query: NameValueCollection) k v -> query.[k] <- v; query) 
+                    (HttpUtility.ParseQueryString("")) 
+                |> (fun c -> c.ToString())
+        
+        /// Post a dictionary to a URL
+        let post (url: string) values = 
+            let client = new WebClient()
+            let data = encode values
+            client.UploadString(url, data)
 
 
+        /// Parse a JSON into a dictionary. 
+        /// Alternatively we could create a record and annotate data member properties, 
+        /// but the contents are not always known.
+        let parse json = 
+            let serializer = new System.Web.Script.Serialization.JavaScriptSerializer()
+            let dict = serializer.Deserialize<IDictionary<string, obj>>(json) // lists will be obj arrays
+            dict
+
+        let toList (value: obj) = 
+            value :?> obj[] |> List.ofArray
+
+
+        /// Testing HTTP related conversions.
+        module Tests = 
+            open NUnit.Framework
+
+            [<Test>]
+            let JsonCanBeParsedIntoDictionary() = 
+                let json = """{"price": 7607, "values": [1, 2, 5, 10, 20, 50, 100, 200], "uuid": "21688bd8-8722-4610-bfd4-8b10ffd1ab83", "pieces": [160, 138, 172, 146, 38, 25, 180, 107]}"""
+                let dict = parse json
+                Assert.AreEqual(7607, dict.["price"])
+                Assert.AreEqual([1; 2; 5; 10; 20; 50; 100; 200], dict.["values"] |> toList)
+                Assert.AreEqual("21688bd8-8722-4610-bfd4-8b10ffd1ab83", dict.["uuid"])
+                Assert.AreEqual([160; 138; 172; 146; 38; 25; 180; 107], dict.["pieces"] |> toList)
+
+            [<Test>]
+            let ValuesCanBeSerializedIntoQueryString() = 
+                let dict = ["uuid", "21688bd8-8722-4610-bfd4-8b10ffd1ab83";
+                            "email", "me@gmail.com"] 
+                            |> Map.ofSeq
+                let data = encode dict
+                Assert.AreEqual("email=me%40gmail.com&uuid=21688bd8-8722-4610-bfd4-8b10ffd1ab83", data)
+
+                let back = HttpUtility.ParseQueryString(data)
+                for (key,value) in dict |> Map.toSeq do
+                    Assert.AreEqual(back.[key], value)
+
+
+    /// Testing the algorithm.
     module Tests = 
         open NUnit.Framework
         open System.Diagnostics
