@@ -83,39 +83,41 @@ module Coins =
         // using smaller coins first
         let coins = expandCoins values pieces |> List.sort
 
-        // build up a dictionary of sums as we encounter them, 
-        // thus having the sum built up from the smallest numbers
-        let sums = new System.Collections.Generic.Dictionary<int,int>()
-        sums.[0] <- 0
+        // build up a dictionary of sums with their parents and path length
+        let sums = new System.Collections.Generic.Dictionary<int,int * int>()
+        sums.[0] <- (0, 0) //  parent * path-length
 
         // go back and collect the increments we got
         let rec backtrack s steps =
             if s = 0 then
                 steps
             else
-                let prev = sums.[s] 
+                let prev = fst sums.[s] 
                 let diff = s - prev
                 backtrack prev (diff :: steps)
         
         // take coins one by one and build the sum dict
         let rec loop lst = 
-            if sums.ContainsKey(sum) then
-                Some(backtrack sum [])
-            else
-                match lst with
-                | hd :: tl -> 
-                    let curr = sums.Keys |> List.ofSeq
-                    for i in curr do
-                        let k = i + hd
-                        if not <| sums.ContainsKey(k) then
-                            sums.[k] <- i
-                    loop tl
-                | [] -> 
-                    None
-
+            match lst with
+            | [] -> // checked all the coins, now see what we got
+                if sums.ContainsKey(sum) then Some(backtrack sum []) else None
+            | hd :: tl -> 
+                // no point keeping track of sums beyond our target
+                let smallers = sums.Keys |> Seq.filter ((>) sum) |> List.ofSeq
+                for i in smallers do
+                    let child = i + hd
+                    let steps = (snd sums.[i]) + 1
+                    match sums.TryGetValue(child) with
+                    | true, (_, steps') when steps' >= steps -> 
+                        () // leave it if it's already longer
+                    | _ -> 
+                        sums.[child] <- (i, steps) // replace with longer or new
+                loop tl
+            
         match loop coins with
         | Some(coins) -> Some(coins |> List.length, coins)
         | None -> None
+
 
     
     
@@ -298,7 +300,7 @@ module Coins =
             let value  = 19700
             let solution = changeAndDisposeMostBuild values pieces value
             Assert.AreNotEqual(569, solution |> Option.get |> fst)
-            Assert.AreNotEqual(571, solution |> Option.get |> fst)
+            Assert.AreEqual(571, solution |> Option.get |> fst)
 
         
         [<Test>]
