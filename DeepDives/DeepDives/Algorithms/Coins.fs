@@ -149,8 +149,8 @@ module Coins =
             let dict = serializer.Deserialize<IDictionary<string, obj>>(json) // lists will be obj arrays
             dict
 
-        let toList (value: obj) = 
-            value :?> obj[] |> List.ofArray
+        let toList<'T> (value: obj) = 
+            value :?> obj[] |> List.ofArray |> List.map (fun x -> x :?> 'T)
 
 
         /// Testing HTTP related conversions.
@@ -162,9 +162,9 @@ module Coins =
                 let json = """{"price": 7607, "values": [1, 2, 5, 10, 20, 50, 100, 200], "uuid": "21688bd8-8722-4610-bfd4-8b10ffd1ab83", "pieces": [160, 138, 172, 146, 38, 25, 180, 107]}"""
                 let dict = parse json
                 Assert.AreEqual(7607, dict.["price"])
-                Assert.AreEqual([1; 2; 5; 10; 20; 50; 100; 200], dict.["values"] |> toList)
+                Assert.AreEqual([1; 2; 5; 10; 20; 50; 100; 200], dict.["values"] |> toList<int>)
                 Assert.AreEqual("21688bd8-8722-4610-bfd4-8b10ffd1ab83", dict.["uuid"])
-                Assert.AreEqual([160; 138; 172; 146; 38; 25; 180; 107], dict.["pieces"] |> toList)
+                Assert.AreEqual([160; 138; 172; 146; 38; 25; 180; 107], dict.["pieces"] |> toList<int>)
 
             [<Test>]
             let ValuesCanBeSerializedIntoQueryString() = 
