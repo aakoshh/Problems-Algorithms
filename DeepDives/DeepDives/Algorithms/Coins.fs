@@ -125,6 +125,7 @@ module Coins =
         open System.Net
         open System.Web
         open System.Collections.Specialized
+        open System.Diagnostics
 
         /// Transform a dictionary into a query string.
         let encode values = 
@@ -138,6 +139,7 @@ module Coins =
         let post (url: string) values = 
             let client = new WebClient()
             let data = encode values
+            client.Headers.["Content-Type"] <- "application/x-www-form-urlencoded"
             client.UploadString(url, data)
 
 
@@ -151,6 +153,33 @@ module Coins =
 
         let toList<'T> (value: obj) = 
             value :?> obj[] |> List.ofArray |> List.map (fun x -> x :?> 'T)
+
+
+        /// Fetch an exercise, solve it, and post back the results.
+        let solve url (task: int) email = 
+            let timer = Stopwatch.StartNew()
+            let json = ["action", "fetch"; "number", string task] |> Map.ofSeq |> post url 
+            printfn "fetched data at %d ms" timer.ElapsedMilliseconds
+            printfn "%s" json
+
+            let dict = parse json
+            let uuid = dict.["uuid"] :?> string
+            let price = dict.["price"] :?> int
+            let values = dict.["values"] |> toList<int>
+            let pieces = dict.["pieces"] |> toList<int>
+
+            let solution = changeAndDisposeMostBuild values pieces price
+            let answer = match solution with 
+                | Some (cs, _) -> cs
+                | _ -> 0
+
+            printfn "found solution %d at %d ms" answer timer.ElapsedMilliseconds
+
+            let result = ["action", "solve"; "number", string task; "uuid", uuid; "email", email; "solution", string answer] |> Map.ofSeq |> post url 
+            
+            printfn "received result at %d ms" timer.ElapsedMilliseconds
+            printfn "%s" result
+
 
 
         /// Testing HTTP related conversions.
