@@ -50,33 +50,6 @@ module Coins =
         change (sum, 0)
 
 
-    /// Change coins by getting rid of the smalles values greedily.
-    /// Can result in inferior solutions like in case of [10; 20; 50] [1; 3; 1] 60
-    let changeAndDisposeMostGreedy values pieces sum = 
-        // create an array so we can use dynamic programming referring to indexes
-        let coins = expandCoins values pieces 
-                    |> Array.ofList 
-                    |> Array.sort
-        let n = coins |> Array.length
-
-        let rec change = memoize <| fun (s, i) ->
-            if i = n && s <> 0 then
-                None
-            else if s = 0 then
-                Some (0, [])
-            else if coins.[i] <= s then
-                // try to go with the smallest coin
-                match change (s-coins.[i], i+1) with
-                | Some (w, cw) -> 
-                    Some(w+1, coins.[i] :: cw) 
-                | None -> 
-                    change (s, i+1)
-            else
-                change (s, i+1)
-
-        change (sum, 0)
-
-
     /// Start adding up the smalles coins and quit as soon as we have our sum.
     /// This is faster than doing the whole dynamic programming thing.
     let changeAndDisposeMostBuild values pieces sum = 
@@ -263,11 +236,6 @@ module Coins =
             Assume.That(elapsed < 1000L, sprintf "Should have finished faster than %d ms." elapsed) // not in debug mode
             printfn "Calculation took %d ms." elapsed 
 
-
-        [<Test>]
-        let GreedyPicksInferiorSolution() = 
-            let solution = changeAndDisposeMostGreedy [10; 20; 50] [1; 3; 1] 60
-            Assert.AreEqual([10; 50], solution |> Option.get |> snd)
 
         [<Test>]
         let BuilderPicksTheRightSolution() = 
