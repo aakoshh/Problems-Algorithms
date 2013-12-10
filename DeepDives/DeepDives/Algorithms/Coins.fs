@@ -124,6 +124,12 @@ module Coins =
         open NUnit.Framework
         open System.Diagnostics
 
+        let correctMethods = [changeAndDisposeMost; changeAndDisposeMostBuild]
+
+        let sampleValues = [1; 2; 5; 10; 20; 50; 100; 200]
+        let samplePieces = [160; 138; 172; 146; 38; 25; 180; 107]
+        let sampleValue  = 7606
+
         [<Test>]
         let CoinListsCanBeExpanded() = 
             let values = [200; 100; 50; 20; 5; 1]
@@ -133,32 +139,26 @@ module Coins =
 
         [<Test>]
         let ChangeSumsUpToValue() = 
-            let values = [1; 2; 5; 10; 20; 50; 100; 200]
-            let pieces = [160; 138; 172; 146; 38; 25; 180; 107]
-            let value  = 7606
-            let coins  = changeAndDisposeMost values pieces value
+            let coins  = changeAndDisposeMost sampleValues samplePieces sampleValue
             Assert.That(coins |> Option.isSome)
-            Assert.AreEqual(value, coins |> Option.get |> snd |> List.sum)
+            Assert.AreEqual(sampleValue, coins |> Option.get |> snd |> List.sum)
 
 
         [<Test>]
-        let BuilderMethodIsEquivalentToDynamic() = 
-            let values = [1; 2; 5; 10; 20; 50; 100; 200]
-            let pieces = [160; 138; 172; 146; 38; 25; 180; 107]
-            let value  = 7606
-            let s1 = changeAndDisposeMost values pieces value
-            let s2 = changeAndDisposeMostBuild values pieces value
-            Assert.AreEqual(s1 |> Option.get |> fst, s2 |> Option.get |> fst)
-            Assert.AreEqual(s1 |> Option.get |> snd |> List.sum, s2 |> Option.get |> snd |> List.sum)
+        let CorrectAlgorithmsGiveEquivalentResults() = 
+            let solutions = correctMethods |> List.map (fun f -> f sampleValues samplePieces sampleValue)
+            let first = List.head solutions
+            Assert.That(solutions |> List.tail |> List.forall (fun s -> 
+                match first, s with
+                | None, None -> true
+                | Some (cc, cs), Some(fcc, fcs) -> cc = fcc && List.sum cs = List.sum fcs
+                | _ -> false ))
 
 
         [<Test>]
-        let AlgorithmFinishesWithin10Seconds() = 
-            let values = [1; 2; 5; 10; 20; 50; 100; 200]
-            let pieces = [160; 138; 172; 146; 38; 25; 180; 107]
-            let value  = 7606
+        let DynamicAlgorithmFinishesWithin10Seconds() = 
             let timer  = Stopwatch.StartNew()
-            let coins  = changeAndDisposeMost values pieces value
+            let coins  = changeAndDisposeMost sampleValues samplePieces sampleValue
             let elapsed = timer.ElapsedMilliseconds
             Assume.That(elapsed < 10000L, sprintf "Should have finished faster than %d ms." elapsed) // not in debug mode
             printfn "Calculation took %d ms." elapsed 
@@ -166,11 +166,8 @@ module Coins =
 
         [<Test>]
         let BuilderAlgorithmFinishesWithin1Second() = 
-            let values = [1; 2; 5; 10; 20; 50; 100; 200]
-            let pieces = [160; 138; 172; 146; 38; 25; 180; 107]
-            let value  = 7606
             let timer  = Stopwatch.StartNew()
-            let coins  = changeAndDisposeMostBuild values pieces value
+            let coins  = changeAndDisposeMostBuild sampleValues samplePieces sampleValue
             let elapsed = timer.ElapsedMilliseconds
             Assume.That(elapsed < 1000L, sprintf "Should have finished faster than %d ms." elapsed) // not in debug mode
             printfn "Calculation took %d ms." elapsed 
@@ -185,3 +182,12 @@ module Coins =
         let BuilderPicksTheRightSolution() = 
             let solution = changeAndDisposeMostBuild [10; 20; 50] [1; 3; 1] 60
             Assert.AreEqual([20;20;20], solution |> Option.get |> snd)
+
+
+        [<Test>]
+        let CorrectAlgorithmsPayExactAmountOrNothing() = 
+            let values = [5; 10; 20]
+            let pieces = [1; 2; 3]
+            let value  = 37
+            let solutions = correctMethods |> List.map (fun f -> f values pieces value)
+            Assert.That(solutions |> List.forall Option.isNone)
