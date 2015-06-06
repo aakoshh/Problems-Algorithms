@@ -1,5 +1,8 @@
 package fpinscala.monoids
 
+import fpinscala.Par
+import fpinscala.Parallel.Par
+
 /** Monoid laws:
   * op(a, op(b, c)) == op(op(a,b), c)
   * op(a, zero) == op(zero, a)
@@ -41,6 +44,11 @@ object Monoids {
     def zero = identity
   }
 
+  def stringConcat = new Monoid[String] {
+    def op(a: String, b: String) = a + b
+    def zero = ""
+  }
+
   def concatenate[A](as: List[A], m: Monoid[A]): A =
     as.foldLeft(m.zero)(m.op)
 
@@ -54,5 +62,71 @@ object Monoids {
     val b = foldMap(as, m)(a => f(m.zero, a))
     // Combining the seed with the folded result should be all the same to a monoid.
     m.op(z, b)
+  }
+
+  /** Fold a list by splitting in 2 parts recursively. */
+  def foldMapV[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): B = {
+    def loop(v: IndexedSeq[A]): B = {
+      if (v.size <= 1) {
+        (v map f).headOption.getOrElse(m.zero)
+      } else {
+        val (left, right) = v.splitAt(v.size / 2)
+        m.op(loop(left), loop(right))
+      }
+    }
+    loop(as)
+  }
+
+  /** Given a monoid, create a new one that can combine
+    * parallel computations on the underlying type. */
+  def par[A](m: Monoid[A]) = new Monoid[Par[A]] {
+    def zero =
+      Par.unit(m.zero)
+
+    def op(a: Par[A], b: Par[A]): Par[A] =
+      Par.map2(a, b)(m.op)
+  }
+
+  /** Fold list in parallel. */
+  def parFoldMap[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] = {
+    val pm = par(m)
+    def loop(v: IndexedSeq[A]): Par[B] = {
+      if (v.size <= 1) {
+        v.map(x => Par.unit(f(x)))
+         .headOption.getOrElse(pm.zero)
+      } else {
+        val (l, r) = v.splitAt(v.size / 2)
+        pm.op(loop(l), loop(r))
+      }
+    }
+    loop(as)
+  }
+
+  sealed trait OrderCheck[+A]
+  object OrderCheck {
+    case object Empty extends OrderCheck[Nothing]
+    case object OutOfOrder extends OrderCheck[Nothing]
+    case class InOrder[A](min: A, max: A) extends OrderCheck[A]
+  }
+
+  def order[A <% Ordered[A]] = new Monoid[OrderCheck[A]] {
+    import OrderCheck._
+    def zero = Empty
+    def op(a: OrderCheck[A], b: OrderCheck[A]) = (a, b) match {
+      case (Empty, x) => b
+      case (a, Empty) => a
+      case (InOrder(mina, maxa), InOrder(minb, maxb)) if maxa <= minb =>
+        InOrder(mina, maxb)
+      case _ =>
+        OutOfOrder
+    }
+  }
+
+  /** Check whether some ints are ordered using foldMap. */
+  def isOrdered(xs: IndexedSeq[Int]): Boolean = {
+    foldMapV(xs, order[Int])(x => OrderCheck.InOrder(x,x)) match {
+      case OrderCheck.OutOfOrder => false
+      case _ => true
+    }
   }
 }

@@ -50,4 +50,12 @@ object MonoidProperties extends Properties("Monoid") {
   property(s"foldLeft works with monoid") = forAll { (as: List[Int], b: Int) =>
     Monoids.foldLeft(b)(as)(_ + _)(Monoids.intAddition) == as.sum + b
   }
+
+  property(s"foldMapV") = forAll { (as: Vector[String]) =>
+    Monoids.foldMapV(as, Monoids.stringConcat)(identity) == as.mkString("")
+  }
+
+  property(s"isOrdered") = forAll { (as: Vector[Int]) =>
+    Monoids.isOrdered(as) == as.size <= 1 || (1 to as.size-1).forall(i => as(i-1) <= as(i))
+  }
 }
