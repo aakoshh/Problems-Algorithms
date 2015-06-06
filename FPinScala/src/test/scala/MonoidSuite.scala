@@ -46,4 +46,8 @@ object MonoidProperties extends Properties("Monoid") {
   property(s"foldMap reduces list after mapping") = forAll { (a: List[String]) =>
     Monoids.foldMap(a, Monoids.intAddition)(_.size) == a.foldLeft(0)(_ + _.size)
   }
+
+  property(s"foldLeft works with monoid") = forAll { (as: List[Int], b: Int) =>
+    Monoids.foldLeft(b)(as)(_ + _)(Monoids.intAddition) == as.sum + b
+  }
 }

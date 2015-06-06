@@ -48,4 +48,11 @@ object Monoids {
   def foldMap[A,B](as: List[A], m: Monoid[B])(f: A => B): B =
     concatenate(as map f, m)
 
+  /** foldLeft in terms of foldMap */
+  def foldLeft[A, B](z: B)(as: List[A])(f: (B, A) => B)(implicit m: Monoid[B]): B = {
+    // Use foldMap to reduce the list. B is a monoid so it should be commutative and associative.
+    val b = foldMap(as, m)(a => f(m.zero, a))
+    // Combining the seed with the folded result should be all the same to a monoid.
+    m.op(z, b)
+  }
 }
