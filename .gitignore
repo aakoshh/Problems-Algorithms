@@ -6,3 +6,8 @@ obj
 # mstest test results
 TestResults
 Problems99/_ReSharper.Problems99
+fpinscala.sublime-*
+*.idea*
+FPinScala/project/target
+FPinScala/src/main/target
+FPinScala/target
