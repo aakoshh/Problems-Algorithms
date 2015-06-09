@@ -1,7 +1,6 @@
 package fpinscala.monoids
 
-import org.scalacheck._
-import org.scalacheck.Prop.forAll
+import org.scalacheck._, Prop.forAll, Arbitrary._
 import scala.reflect.ClassTag
 
 object MonoidProperties extends Properties("Monoid") {
@@ -32,12 +31,30 @@ object MonoidProperties extends Properties("Monoid") {
   implicit val intEndos = Arbitrary(Gen.oneOf(Seq(
     (x: Int) => x + 1, (x: Int) => x * 2, (x: Int) => x - 3)))
 
+  implicit val arbWC: Arbitrary[WC] = {
+    val genS = arbitrary[String] map (Stub(_))
+
+    val genP = for {
+      a <- arbitrary[String]
+      b <- arbitrary[String]
+      c <- arbitrary[Int]
+    } yield Part(a,c,b)
+
+    val genWC = for {
+      stop <- arbitrary[Boolean]
+      wc   <- if (stop) genS else genP
+    } yield wc
+
+    Arbitrary(genWC)
+  }
+
   monoidLaws("intAddition", Monoids.intAddition)
   monoidLaws("intMultiplication", Monoids.intMultiplication)
   monoidLaws("booleanOr", Monoids.booleanOr)
   monoidLaws("booleanAnd", Monoids.booleanAnd)
   monoidLaws("option", Monoids.optionMonoid[Int])
   monoidLawsFun("endo", Monoids.endoMonoid[Int])
+  monoidLaws("wc", Monoids.wcMonoid)
 
   property(s"concatenate reduces list") = forAll { (a: List[Int]) =>
     Monoids.concatenate(a, Monoids.intAddition) == a.sum
@@ -57,5 +74,9 @@ object MonoidProperties extends Properties("Monoid") {
 
   property(s"isOrdered") = forAll { (as: Vector[Int]) =>
     Monoids.isOrdered(as) == as.size <= 1 || (1 to as.size-1).forall(i => as(i-1) <= as(i))
+  }
+
+  property(s"wordCount") = forAll { (s: String) =>
+    Monoids.wordCount(s) == s.split(" ").filterNot(_ == "").size
   }
 }

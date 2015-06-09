@@ -129,4 +129,34 @@ object Monoids {
       case _ => true
     }
   }
+
+  val wcMonoid = new Monoid[WC] {
+    val zero = Stub("")
+    def op(a: WC, b: WC): WC = (a, b) match {
+      case (Stub(" "), Stub(b)) =>
+        Part("", 0, b)
+      case (Stub(a), Stub(" ")) =>
+        Part(a, 0, "")
+      case (Stub(a), Stub(b)) =>
+        Stub(a + b)
+      case (Stub(a), Part(lb, cnt, rb)) =>
+        Part(a + lb, cnt, rb)
+      case (Part(la, cnt, ra), Stub(b)) =>
+        Part(la, cnt, ra + b)
+      case (Part(la, ca, ra), Part(lb, cb, rb)) =>
+        Part(la, ca + cb + (if (ra == "" && lb == "") 0 else 1), rb)
+    }
+  }
+
+  def wordCount(text: String): Int = {
+    def sc(c: String) = if (c == "") 0 else 1
+    foldMapV(text.toVector, wcMonoid)(c => Stub(c.toString)) match {
+      case Stub(a)       => sc(a)
+      case Part(a, c, b) => sc(a) + c + sc(b)
+    }
+  }
 }
+
+sealed trait WC
+case class Stub(chars: String) extends WC // Incomplete word.
+case class Part(lStub: String, words: Int, rStub: String) extends WC
