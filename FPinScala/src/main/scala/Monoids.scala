@@ -44,9 +44,32 @@ object Monoids {
     def zero = identity
   }
 
+  /** Monoid for functions whose results are monoids. */
+  def functionMonoid[A, B](mb: Monoid[B]) = new Monoid[A => B] {
+    def zero = (_: A) => mb.zero
+    def op(f: A => B, g: A => B) = (x: A) => mb.op(f(x), g(x))
+  }
+
+  /** Tuples of monoids are monoids themselves */
+  def productMonoid[A, B](ma: Monoid[A], mb: Monoid[B]) = new Monoid[(A, B)] {
+    def zero = (ma.zero, mb.zero)
+    def op(ab1: (A,B), ab2: (A,B)) = (ma.op(ab1._1, ab2._1), mb.op(ab1._2, ab2._2))
+  }
+
   def stringConcat = new Monoid[String] {
     def op(a: String, b: String) = a + b
     def zero = ""
+  }
+
+  def mapMerge[K, V](mv: Monoid[V]) = new Monoid[Map[K, V]] {
+    def zero = Map.empty[K, V]
+    def op(a: Map[K, V], b: Map[K, V]) = {
+      (a.keySet ++ b.keySet).foldLeft(Map[K, V]()) { (acc, k) =>
+        val va = a.get(k).getOrElse(mv.zero)
+        val vb = b.get(k).getOrElse(mv.zero)
+        acc + (k -> mv.op(va, vb))
+      }
+    }
   }
 
   def concatenate[A](as: List[A], m: Monoid[A]): A =
@@ -155,8 +178,57 @@ object Monoids {
       case Part(a, c, b) => sc(a) + c + sc(b)
     }
   }
+
+  def bag[A](as: IndexedSeq[A]): Map[A, Int] = {
+    val m = mapMerge[A, Int](intAddition)
+    foldMapV(as, m)(a => Map(a -> 1))
+  }
 }
 
 sealed trait WC
 case class Stub(chars: String) extends WC // Incomplete word.
 case class Part(lStub: String, words: Int, rStub: String) extends WC
+
+trait Foldable[F[_]] {
+  def foldRight[A,B](as: F[A])(z: B)(f: (A,B) => B): B
+  def foldLeft[A,B](as: F[A])(z: B)(f: (B,A) => B): B
+
+  def foldMap[A,B](as: F[A])(f: A => B)(mb: Monoid[B]): B =
+    foldLeft(as)(mb.zero) { (b,a) => mb.op(b, f(a)) }
+
+  def concatenate[A](as: F[A])(m: Monoid[A]): A =
+    foldLeft(as)(m.zero)(m.op)
+
+  def toList[A](as: F[A]): List[A] =
+    foldRight(as)(List.empty[A])(_ :: _)
+}
+
+object Foldable {
+  implicit val foldableList = new Foldable[List] {
+    def foldRight[A,B](as: List[A])(z: B)(f: (A,B) => B): B =
+      as.foldRight(z)(f)
+
+    def foldLeft[A,B](as: List[A])(z: B)(f: (B,A) => B): B =
+      as.foldLeft(z)(f)
+  }
+
+  implicit val foldableIndexedSeq = new Foldable[IndexedSeq] {
+    def foldRight[A,B](as: IndexedSeq[A])(z: B)(f: (A,B) => B): B =
+      as.foldRight(z)(f)
+
+    def foldLeft[A,B](as: IndexedSeq[A])(z: B)(f: (B,A) => B): B =
+      as.foldLeft(z)(f)
+
+    override def foldMap[A,B](as: IndexedSeq[A])(f: A => B)(mb: Monoid[B]): B =
+      Monoids.foldMapV(as, mb)(f)
+  }
+
+  implicit val foldableOption = new Foldable[Option] {
+    def foldRight[A,B](as: Option[A])(z: B)(f: (A,B) => B): B = {
+      as map (f(_, z)) getOrElse z
+    }
+    def foldLeft[A,B](as: Option[A])(z: B)(f: (B,A) => B): B = {
+      as map (f(z, _)) getOrElse z
+    }
+  }
+}

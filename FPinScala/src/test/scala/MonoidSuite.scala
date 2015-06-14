@@ -54,7 +54,10 @@ object MonoidProperties extends Properties("Monoid") {
   monoidLaws("booleanAnd", Monoids.booleanAnd)
   monoidLaws("option", Monoids.optionMonoid[Int])
   monoidLawsFun("endo", Monoids.endoMonoid[Int])
+  monoidLawsFun("fun", Monoids.functionMonoid[Int, String](Monoids.stringConcat))
   monoidLaws("wc", Monoids.wcMonoid)
+  monoidLaws("product", Monoids.productMonoid(Monoids.intAddition, Monoids.booleanAnd))
+  monoidLaws("mapMerge", Monoids.mapMerge[String, Int](Monoids.intMultiplication))
 
   property(s"concatenate reduces list") = forAll { (a: List[Int]) =>
     Monoids.concatenate(a, Monoids.intAddition) == a.sum
@@ -78,5 +81,9 @@ object MonoidProperties extends Properties("Monoid") {
 
   property(s"wordCount") = forAll { (s: String) =>
     Monoids.wordCount(s) == s.split(" ").filterNot(_ == "").size
+  }
+
+  property(s"bag") = forAll { (as: Vector[String]) =>
+    Monoids.bag(as) == as.groupBy(identity).mapValues(_.length)
   }
 }
