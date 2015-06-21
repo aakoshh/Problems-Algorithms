@@ -2,9 +2,18 @@ package fpinscala.monads
 
 import fpinscala.State
 
+/** Type class for a monad handling a specific higher kinded type. */
 trait Monad[F[_]] {
   def unit[A](a: A): F[A]
   def flatMap[A,B](ma: F[A])(f: A => F[B]): F[B]
+
+  def flatten[A](mma: F[F[A]]): F[A] = {
+    flatMap(mma)(ma => ma)
+  }
+
+  def join[A](mma: F[F[A]]): F[A] = {
+    flatten(mma)
+  }
 
   def map[A,B](ma: F[A])(f: A => B): F[B] =
     flatMap(ma)(a => unit(f(a)))
@@ -26,6 +35,37 @@ trait Monad[F[_]] {
 
   def replicateM[A](n: Int, ma: F[A]): F[List[A]] = {
     sequence(List.fill(n)(ma))
+  }
+
+  def product[A,B](a: F[A], b: F[B]): F[(A,B)] = {
+    map2(a,b)((_,_))
+  }
+
+  /** Filter by function that returns a monad, and return overall monad.
+    * For example filter returns a future, end result is future of list. */
+  def filterM[A](ms: List[A])(f: A => F[Boolean]): F[List[A]] = {
+    val mbs: F[List[Boolean]] = traverse(ms)(f)
+    map(mbs) { bs => (ms zip bs) filter (_._2) map (_._1) }
+  }
+
+  /** Combine to Kleisli arrows (A => F[B]). */
+  def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] = {
+    a => flatMap(f(a))(b => g(b))
+  }
+
+  /** unit and compose would be another minimal combo */
+  def flatMapViaCompose[A, B](ma: F[A])(f: A => F[B]): F[B] = {
+    val seed = (_: Unit) => ma
+    compose(seed, f)(Unit) // Run it with unit.
+  }
+
+  /** map unit and join are also minimal */
+  def flatMapViaJoinAndMap[A, B](ma: F[A])(f: A => F[B]): F[B] = {
+    join { map(ma)(f) }
+  }
+
+  def composeViaJoinAndMap[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] = {
+    a => join { map(f(a))(g) }
   }
 }
 
@@ -50,14 +90,29 @@ object Monad {
     * a single type parameter.
     */
   def stateMonad[S] = {
-    type StateS[A] = State[S, A]
+    //type StateS[A] = State[S, A]
+    // If used like `new Monad[StateS]` it doesn't compile
+    // when I try to call it. Type lambda works.
 
-    new Monad[StateS] {
+    new Monad[({type StateS[A] = State[S, A]})#StateS] {
       def unit[A](a: A) =
         State.unit[S, A](a)
 
-      def flatMap[A,B](ma: StateS[A])(f: A => StateS[B]) =
+      def flatMap[A,B](ma: State[S,A])(f: A => State[S,B]) =
         ma flatMap f
     }
   }
+
+  val idMonad = new Monad[Id] {
+    def unit[A](a: A) =
+      Id(a)
+    def flatMap[A, B](ma: Id[A])(f: A => Id[B]) =
+      ma flatMap f
+  }
+}
+
+/** Data structure for the Identity monad. */
+case class Id[A](value: A) {
+  def flatMap[B](f: A => Id[B]) = f(value)
+  def map[B](f: A => B)         = Id(f(value))
 }
