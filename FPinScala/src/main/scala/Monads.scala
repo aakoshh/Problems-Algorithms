@@ -109,6 +109,24 @@ object Monad {
     def flatMap[A, B](ma: Id[A])(f: A => Id[B]) =
       ma flatMap f
   }
+
+
+  def readerMonad[R] = {
+    new Monad[({type f[x] = Reader[R, x]})#f] {
+      /** Read constant value. */
+      def unit[A](a: A) =
+        Reader((_: R) => a)
+
+      /** Read a value and based on that decide what other value to read and return. */
+      def flatMap[A, B](ma: Reader[R,A])(f: A => Reader[R,B]): Reader[R,B] =
+        Reader { (r: R) =>
+          val a = ma.run(r)
+          f(a).run(r)
+        }
+
+      // sequence: Read all values in a list.
+    }
+  }
 }
 
 /** Data structure for the Identity monad. */
@@ -116,3 +134,5 @@ case class Id[A](value: A) {
   def flatMap[B](f: A => Id[B]) = f(value)
   def map[B](f: A => B)         = Id(f(value))
 }
+
+case class Reader[R, A](run: R => A)
