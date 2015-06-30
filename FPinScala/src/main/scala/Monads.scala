@@ -2,8 +2,12 @@ package fpinscala.monads
 
 import fpinscala.State
 
+trait Functor[F[_]] {
+  def map[A,B](fa: F[A])(f: A => B): F[B]
+}
+
 /** Type class for a monad handling a specific higher kinded type. */
-trait Monad[F[_]] {
+trait Monad[F[_]] extends Functor[F] {
   def unit[A](a: A): F[A]
   def flatMap[A,B](ma: F[A])(f: A => F[B]): F[B]
 
